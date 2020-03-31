@@ -1,11 +1,14 @@
 package cz.vsb.bra0174.osmz.httpserver.viewmodel
 
 import android.app.Application
+import android.app.PendingIntent
+import android.content.Intent
 import android.view.View
 import androidx.core.app.NotificationCompat
 import androidx.databinding.ObservableList
 import androidx.lifecycle.*
 import cz.vsb.bra0174.osmz.httpserver.HttpServerService
+import cz.vsb.bra0174.osmz.httpserver.R
 import cz.vsb.bra0174.osmz.httpserver.model.LogEntry
 
 private const val TAG = "MainActivityViewModel"
@@ -21,9 +24,6 @@ private const val MIN_PORT_VALUE = 1
 private const val MAX_PORT_VALUE = 65535
 
 class MainActivityViewModel(application: Application) : AndroidViewModel(application) {
-    companion object{
-        private const val NOTIFICATION_CHANNEL_ID = "ServiceNotificationChannel"
-    }
     //UI element backing properties live data
     //Two-way bound live data input
     val serverPort = MutableLiveData(DEFAULT_PORT.toString())
@@ -33,14 +33,8 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
     val running = MutableLiveData(false)
     val logEntryList = MutableLiveData<ObservableList<LogEntry>?>(null)
 
-    //NOTE: take care when accessing the data in the observable list, since it may be invalid if the
-    //      service stops and is destroyed (there is probably way to check it)
-    //TODO:
     val serverService = MutableLiveData<HttpServerService?>(null)
     val boundToService = MutableLiveData<Boolean>(false)
-
-    private val notification =
-        NotificationCompat.Builder(getApplication(), NOTIFICATION_CHANNEL_ID).build()
 
     //Input validation live data
     val serverPortValid = MediatorLiveData<Boolean>().apply {
@@ -65,37 +59,6 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
         addSource(serverPortValid) { value = isInputValid() }
         addSource(serverThreadCountValid) { value = isInputValid() }
     }
-
-    fun onButtonClick(view: View) {
-
-    }
-
-    private fun nonNull(vararg data: LiveData<out Any?>) = data.all { it.value != null }
-
-//        view.isClickable = false
-////        view.overlay.add() TODO: add loading overlay
-//        when (running.value ?: false) {
-//            true -> {
-//                socketServer.value?.shutdown()
-//                socketServer.value = null
-//                running.value = false
-//            }
-//            false -> {
-//                if (nonNull(serverPort, serverThreadCount, fileServerModule, cameraServerModule)) {
-//                    socketServer.value = HttpServer(
-//                        serverPort.value!!.toInt(),
-//                        serverThreadCount.value!!.toInt(),
-//                        arrayOf(fileServerModule.value!!, cameraServerModule.value!!),
-//                        addLog
-//                    ).apply {
-//                        start()
-//                    }
-//                    running.value = true
-//                } else {
-//                    Log.e(TAG, "Input validation error: allowed invalid input")
-//                }
-//            }
-//        }
-//        view.isClickable = true
-//    }
+//    private fun nonNull(vararg data: LiveData<out Any?>) = data.all { it.value != null }
 }
+

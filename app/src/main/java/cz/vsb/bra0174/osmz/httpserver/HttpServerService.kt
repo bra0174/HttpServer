@@ -1,5 +1,6 @@
 package cz.vsb.bra0174.osmz.httpserver
 
+import android.app.Notification
 import android.app.Service
 import android.content.Intent
 import android.os.Binder
@@ -30,8 +31,10 @@ private const val REQUESTED_FACING = CameraSelector.LENS_FACING_BACK
 class HttpServerService : LifecycleService() {
     companion object {
         private const val TAG = "HttpServerService"
+        private const val NOTIFICATION_ID = 1
         val SERVER_PORT_KEY = "ServerPortIntentKey"
         val THREAD_COUNT_KEY = "ServerThreadCountIntentKey"
+        val NOTIFICATION_KEY = "NotificationKey"
     }
 
     //Expose received parameters for activity to sync on bind
@@ -75,7 +78,8 @@ class HttpServerService : LifecycleService() {
         intent?.apply {
             val port = extras?.getInt(SERVER_PORT_KEY, -1).takeIf { it != -1 }
             val threadCount = extras?.getInt(THREAD_COUNT_KEY, -1).takeIf { it != -1 }
-            if (port != null && threadCount != null) {
+            val notification = extras?.getParcelable<Notification>(NOTIFICATION_KEY)
+            if (port != null && threadCount != null && notification != null) {
                 if (_serverRunning.value != true && initializing.compareAndSet(false, true)) {
                     val providerFuture = ProcessCameraProvider.getInstance(this@HttpServerService)
                     // Runs init stuff on init thread,
@@ -108,8 +112,7 @@ class HttpServerService : LifecycleService() {
                             { _serverRunning.postValue(false) }
                         ).apply { start() }.also { _serverRunning.postValue(true) }
                         //Elevate service to foregroundService and display its notification
-                        //TODO
-
+                        startForeground(NOTIFICATION_ID, notification)
                         initializing.set(false)
                     }, initExecutor)
                 }

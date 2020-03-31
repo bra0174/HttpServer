@@ -3,6 +3,7 @@ package cz.vsb.bra0174.osmz.httpserver.server
 import android.util.Log
 import cz.vsb.bra0174.osmz.httpserver.DateFormats
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.html.*
 import kotlinx.html.dom.createHTMLDocument
 import kotlinx.html.dom.serialize
@@ -186,7 +187,7 @@ class FinalHttpResponse(
 class StreamHttpResponse(
     statusCode: StatusCode,
     headers: Map<String, String>,
-    val partEmitter: Channel<ByteArray>,
+    val partEmitter: ReceiveChannel<ByteArray>,
     val boundary: String = "MyDefaultBoundaryString"
 ) : HttpResponse(statusCode, headers) {
     override val headers =

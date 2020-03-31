@@ -23,7 +23,6 @@
             android:layout_marginTop="15dp"
             android:checked="@{viewmodel.running}"
             android:enabled="@{viewmodel.inputValid}"
-            android:onClick="@{viewmodel::onButtonClick}"
             android:text="@string/statusSwitchLabel"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />

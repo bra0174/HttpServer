@@ -14,6 +14,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.os.IBinder
 import android.util.Log
+import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -41,6 +42,8 @@ class MainActivity : AppCompatActivity() {
             Manifest.permission.INTERNET
         )
         private const val PERMISSION_REQUEST_ID = 1
+        private const val NOTIFICATION_CHANNEL_ID = "ForegroundServiceChannel"
+        private const val NOTIFICATION_ID = 1
     }
 
     private val viewModel: MainActivityViewModel by viewModels() //ensures there is only one instance
@@ -60,23 +63,53 @@ class MainActivity : AppCompatActivity() {
                 binding.logEntryList.adapter = null
             }
         }
-        viewModel.boundToService.observe(this) { bound ->
-            if (bound) { //Update UI and set observers
-                //Synchronize UI input
-                viewModel.serverPort.value =
-                    viewModel.serverService.value!!.port.toString()
-                viewModel.serverThreadCount.value =
-                    viewModel.serverService.value!!.threads.toString()
-                //NOTE: service cant be destroyed when it is bound
-                //Observe server status, when it stops, unbind so that the service can be destroyed
-                viewModel.serverService.value!!.serverRunning.observe(this){
-                    
-                }
-                viewModel.logEntryList.value = viewModel.serverService.value!!.logs
-            } else { //remove references and observers
+        binding.statusSwitch.setOnClickListener(this::onButtonClick)
+        viewModel.boundToService.observe(this, boundToServiceObserver)
+    }
 
+    private val boundToServiceObserver: (Boolean) -> Unit = { bound ->
+        if (bound) { //Update UI and set observers
+            //Synchronize UI input
+            viewModel.serverPort.value =
+                viewModel.serverService.value!!.port.toString()
+            viewModel.serverThreadCount.value =
+                viewModel.serverService.value!!.threads.toString()
+            viewModel.running.value = viewModel.serverService.value!!.serverRunning.value
+            //NOTE: service cant be destroyed when it is bound
+            //Observe server status, when it stops, unbind so that the service can be destroyed
+            viewModel.serverService.value!!.serverRunning.observe(this) {
+                if (!it) tryToUnbind()
+            }
+            //Set log entry
+            viewModel.logEntryList.value = viewModel.serverService.value!!.logs
+        } else { //remove references to the service
+            viewModel.serverService.value = null
+            viewModel.logEntryList.value = null
+        }
+    }
+
+    private fun onButtonClick(view: View) {
+        view.isClickable = false
+        with(viewModel) {
+            if (inputValid.value == true && boundToService.value == false) {
+                val notification =
+                    NotificationCompat.Builder(this@MainActivity, NOTIFICATION_CHANNEL_ID)
+                        .setContentTitle("Http server")
+                        .setContentText("Http server is running")
+                        .setSmallIcon(R.drawable.ic_launcher_foreground)
+                        .build()
+                val intent = Intent(this@MainActivity, HttpServerService::class.java).apply {
+                    putExtra(HttpServerService.THREAD_COUNT_KEY, serverThreadCount.value!!.toInt())
+                    putExtra(HttpServerService.SERVER_PORT_KEY, serverPort.value!!.toInt())
+                    putExtra(HttpServerService.NOTIFICATION_KEY, notification)
+                }
+//                val pendingIntent = PendingIntent.getService(this@MainActivity, 0, intent, 0)
+                startService(intent)
+                bindToService()
+//                pendingIntent.send()
             }
         }
+        view.isClickable = true
     }
 
     override fun onStart() {
@@ -95,7 +128,6 @@ class MainActivity : AppCompatActivity() {
     //NOTE: start the service with pending intent, so it gets permissions of activity
 
     private fun tryToUnbind(): Unit = try {
-        viewModel.serverService.value = null
         unbindService(serviceConnection)
         viewModel.boundToService.value = false
     } catch (ex: SecurityException) {
@@ -139,6 +171,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
 
     @Suppress("DEPRECATION")
     // ^^ the deprecation concerns only third-party services, function should still return applications own services
